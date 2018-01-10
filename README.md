@@ -1,4 +1,4 @@
-# wielded_loght mod
+# wielded_light mod for Minetest
 
 Idea taken from torches_wieldlight in https://github.com/minetest-mods/torches, but written from scratch in updated and usable for all shining items.
 
