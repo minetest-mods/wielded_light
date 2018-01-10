@@ -1,6 +1,6 @@
 # wielded_light mod for Minetest
 
-Idea taken from torches_wieldlight in https://github.com/minetest-mods/torches, but written from scratch in updated and usable for all shining items.
+Idea taken from torches_wieldlight in https://github.com/minetest-mods/torches, but written from scratch and usable for all shining items.
 
 ![Screenshot](https://github.com/bell07/minetest-wielded_light/raw/master/screenshot.png)
 
