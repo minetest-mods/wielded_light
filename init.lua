@@ -1,7 +1,50 @@
-local update_interval = 0.25
-local level_delta = 3
+local update_interval = 0.2
+local level_delta = 2
 
-for i=1, (14-level_delta) do
+wielded_light = {}
+
+
+function wielded_light.update_light(pos, light_level)
+	local do_update = false
+	local old_value = 0
+	local name = minetest.get_node(pos).name
+	local timer
+
+	if name == "air" and (minetest.get_node_light(pos) or 0) < light_level then
+		do_update = true
+	elseif name:sub(1,13) == "wielded_light" then -- Update existing light node and timer
+		old_value = tonumber(name:sub(15))
+		if light_level > old_value then
+			do_update = true
+		else
+			timer = minetest.get_node_timer(pos)
+			local elapsed = timer:get_elapsed()
+			if elapsed > (update_interval * 1.5) then
+				-- The timer is set to 3x update_interval
+				-- This node was not updated the last interval and may
+				-- is disabled before the next step
+				-- Therefore the light should be re-set to avoid flicker
+				do_update = true
+			end
+		end
+	end
+	if do_update then
+		timer = timer or minetest.get_node_timer(pos)
+		if light_level ~= old_value then
+			minetest.swap_node(pos, {name = "wielded_light:"..light_level})
+		end
+		timer:start(update_interval*3)
+	end
+end
+
+
+local shiny_items = {}
+function wielded_light.register_item_light(itemname, light_level)
+	shiny_items[itemname] = light_level
+end
+
+
+for i=1, 14 do
 	minetest.register_node("wielded_light:"..i, {
 		drawtype = "airlike",
 		groups = {not_in_creative_inventory = 1},
@@ -18,6 +61,7 @@ for i=1, (14-level_delta) do
 	})
 end
 
+-- Wielded item shining globalstep
 local timer = 0
 minetest.register_globalstep(function(dtime)
 	timer = timer + dtime;
@@ -28,16 +72,15 @@ minetest.register_globalstep(function(dtime)
 
 	for _, player in pairs(minetest.get_connected_players()) do
 		local wstack = player:get_wielded_item()
-		local light_level = wstack:get_definition().light_source
-		if light_level and light_level > level_delta then
+		local light_level = shiny_items[wstack:get_name()] or
+				((wstack:get_definition().light_source or 0) - level_delta)
+		if light_level > 0 then
 			local pos = vector.add({x = 0, y = 1, z = 0}, vector.round(player:getpos()))
-			local level = light_level-level_delta
-			local name = minetest.get_node(pos).name
-			if name == "air" and (minetest.get_node_light(pos) or 0) < level or -- New node
-					name:sub(1,13) == "wielded_light" then -- Update existing light node and timer
-				minetest.swap_node(pos, {name = "wielded_light:"..level})
-				minetest.get_node_timer(pos):start(update_interval*2)
-			end
+			wielded_light.update_light(pos, light_level)
 		end
 	end
 end)
+
+
+---TEST
+--wielded_light.register_item_light('default:dirt', 14)
