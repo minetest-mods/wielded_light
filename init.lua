@@ -1,8 +1,9 @@
 local update_interval = 0.2
 local level_delta = 2
+local shiny_items = {}
 
+--- Shining API ---
 wielded_light = {}
-
 
 function wielded_light.update_light(pos, light_level)
 	local do_update = false
@@ -37,13 +38,27 @@ function wielded_light.update_light(pos, light_level)
 	end
 end
 
+function wielded_light.update_light_by_item(item, pos)
+	local stack = ItemStack(item)
+	local light_level = shiny_items[stack:get_name()]
+	local itemdef = stack:get_definition()
+	if not light_level and not itemdef then
+		return
+	end
 
-local shiny_items = {}
+	light_level = light_level or ((itemdef.light_source or 0) - level_delta)
+
+	if light_level > 0 then
+		wielded_light.update_light(pos, light_level)
+	end
+end
+
 function wielded_light.register_item_light(itemname, light_level)
 	shiny_items[itemname] = light_level
 end
 
 
+-- Register helper nodes
 for i=1, 14 do
 	minetest.register_node("wielded_light:"..i, {
 		drawtype = "airlike",
@@ -71,16 +86,34 @@ minetest.register_globalstep(function(dtime)
 	timer = 0
 
 	for _, player in pairs(minetest.get_connected_players()) do
-		local wstack = player:get_wielded_item()
-		local light_level = shiny_items[wstack:get_name()] or
-				((wstack:get_definition().light_source or 0) - level_delta)
-		if light_level > 0 then
-			local pos = vector.add({x = 0, y = 1, z = 0}, vector.round(player:getpos()))
-			wielded_light.update_light(pos, light_level)
-		end
+		wielded_light.update_light_by_item(player:get_wielded_item(),
+				vector.add({x = 0, y = 1, z = 0}, vector.round(player:getpos())))
 	end
 end)
 
 
+-- Dropped item on_step override
+-- https://github.com/minetest/minetest/issues/6909
+local builtin_item = minetest.registered_entities["__builtin:item"]
+local item = { }
+for k,v in pairs(builtin_item) do
+	item[k] = v
+end
+item.on_step = function(self, dtime)
+	builtin_item.on_step(self, dtime)
+
+	self.shining_timer = (self.shining_timer or 0) + dtime
+	if self.shining_timer >= update_interval then
+		self.shining_timer = 0
+		local pos = self.object:get_pos()
+		if pos then
+			wielded_light.update_light_by_item(self.itemstring, pos)
+		end
+	end
+end
+minetest.register_entity(":__builtin:item", item)
+
+
 ---TEST
 --wielded_light.register_item_light('default:dirt', 14)
+

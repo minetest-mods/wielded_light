@@ -19,3 +19,6 @@ Enable or update the shining at pos with light_level for 0.6 seconds. Can be use
 
 `wielded_light.register_item_light(itemname, light_level)`
 Override or set custom light level to an item. This does not change the item/node definition, just the lighting in this mod.
+
+`function wielded_light.update_light_by_item(stack, pos)`
+Update light at pos using item shining settings -from registered item_light or from item definition
