@@ -86,8 +86,16 @@ minetest.register_globalstep(function(dtime)
 	timer = 0
 
 	for _, player in pairs(minetest.get_connected_players()) do
-		wielded_light.update_light_by_item(player:get_wielded_item(),
-				vector.add({x = 0, y = 1, z = 0}, vector.round(player:getpos())))
+		-- predict where the player will be the next time we place the light
+		-- assume that on average we're slightly past 1/2 of the next interval, hence 1.5
+		-- (since the scheduling is a bit behind)
+		-- experimentally this also works nicely
+		local pos = vector.add (
+			vector.add({x = 0, y = 1, z = 0}, vector.round(player:getpos())),
+			vector.round(vector.multiply(player:get_player_velocity(), update_interval * 1.5))
+		)
+
+		wielded_light.update_light_by_item(player:get_wielded_item(), pos)
 	end
 end)
 
