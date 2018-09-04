@@ -6,33 +6,44 @@ local shiny_items = {}
 wielded_light = {}
 
 function wielded_light.update_light(pos, light_level)
+	local around_vector = {
+			{x=0, y=0, z=0},
+			{x=0, y=1, z=0}, {x=0, y=-1, z=0},
+			{x=1, y=0, z=0}, {x=-1, y=0, z=0},
+			{x=0, y=0, z=1}, {x=0, y=0, z=1},
+		}
 	local do_update = false
 	local old_value = 0
-	local name = minetest.get_node(pos).name
 	local timer
-
-	if name == "air" and (minetest.get_node_light(pos) or 0) < light_level then
-		do_update = true
-	elseif name:sub(1,13) == "wielded_light" then -- Update existing light node and timer
-		old_value = tonumber(name:sub(15))
-		if light_level > old_value then
+	local light_pos
+	for _, around in ipairs(around_vector) do
+		light_pos = vector.add(pos, around)
+		local name = minetest.get_node(light_pos).name
+		if name == "air" and (minetest.get_node_light(light_pos) or 0) < light_level then
 			do_update = true
-		else
-			timer = minetest.get_node_timer(pos)
-			local elapsed = timer:get_elapsed()
-			if elapsed > (update_interval * 1.5) then
-				-- The timer is set to 3x update_interval
-				-- This node was not updated the last interval and may
-				-- is disabled before the next step
-				-- Therefore the light should be re-set to avoid flicker
+			break
+		elseif name:sub(1,13) == "wielded_light" then -- Update existing light node and timer
+			old_value = tonumber(name:sub(15))
+			if light_level > old_value then
 				do_update = true
+			else
+				timer = minetest.get_node_timer(light_pos)
+				local elapsed = timer:get_elapsed()
+				if elapsed > (update_interval * 1.5) then
+					-- The timer is set to 3x update_interval
+					-- This node was not updated the last interval and may
+					-- is disabled before the next step
+					-- Therefore the light should be re-set to avoid flicker
+					do_update = true
+				end
 			end
+			break
 		end
 	end
 	if do_update then
-		timer = timer or minetest.get_node_timer(pos)
+		timer = timer or minetest.get_node_timer(light_pos)
 		if light_level ~= old_value then
-			minetest.swap_node(pos, {name = "wielded_light:"..light_level})
+			minetest.swap_node(light_pos, {name = "wielded_light:"..light_level})
 		end
 		timer:start(update_interval*3)
 	end
