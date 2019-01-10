@@ -114,22 +114,21 @@ end)
 -- Dropped item on_step override
 -- https://github.com/minetest/minetest/issues/6909
 local builtin_item = minetest.registered_entities["__builtin:item"]
-local item = { }
-for k,v in pairs(builtin_item) do
-	item[k] = v
-end
-item.on_step = function(self, dtime)
-	builtin_item.on_step(self, dtime)
+local item = {
+	on_step = function(self, dtime)
+		builtin_item.on_step(self, dtime)
 
-	self.shining_timer = (self.shining_timer or 0) + dtime
-	if self.shining_timer >= update_interval then
-		self.shining_timer = 0
-		local pos = self.object:get_pos()
-		if pos then
-			wielded_light.update_light_by_item(self.itemstring, pos)
+		self.shining_timer = (self.shining_timer or 0) + dtime
+		if self.shining_timer >= update_interval then
+			self.shining_timer = 0
+			local pos = self.object:get_pos()
+			if pos then
+				wielded_light.update_light_by_item(self.itemstring, pos)
+			end
 		end
 	end
-end
+}
+setmetatable(item, {__index = builtin_item})
 minetest.register_entity(":__builtin:item", item)
 
 
