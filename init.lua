@@ -80,7 +80,7 @@ for i=1, 14 do
 		light_source = i,
 		pointable = false,
 		buildable_to = true,
-		drops = {},
+		drop = {},
 		on_timer = function(pos, elapsed)
 			minetest.swap_node(pos, {name = "air"})
 		end,
