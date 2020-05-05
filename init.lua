@@ -115,8 +115,8 @@ end)
 -- https://github.com/minetest/minetest/issues/6909
 local builtin_item = minetest.registered_entities["__builtin:item"]
 local item = {
-	on_step = function(self, dtime)
-		builtin_item.on_step(self, dtime)
+	on_step = function(self, dtime, moveresult)
+		builtin_item.on_step(self, dtime, moveresult)
 
 		self.shining_timer = (self.shining_timer or 0) + dtime
 		if self.shining_timer >= update_interval then
