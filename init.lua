@@ -49,7 +49,7 @@ function wielded_light.register_lightable_node(light_def)
 		end
 		-- After an interval, turn back into the unlit node
 		copy_def.on_timer = function(pos, elapsed)
-			minetest.chat_send_all("turning back into " .. lightable_node_name .. " " .. tostring(math.random(1,100)))
+			--minetest.chat_send_all("turning back into " .. lightable_node_name .. " " .. tostring(math.random(1,100)))
 			minetest.swap_node(pos, {name = lightable_node_name})
 		end
 		copy_def.groups = copy_def.groups or {}
