@@ -102,7 +102,7 @@ minetest.register_globalstep(function(dtime)
 		-- (since the scheduling is a bit behind)
 		-- experimentally this also works nicely
 		local pos = vector.add (
-			vector.add({x = 0, y = 1, z = 0}, vector.round(player:getpos())),
+			vector.add({x = 0, y = 1, z = 0}, vector.round(player:get_pos())),
 			vector.round(vector.multiply(player:get_player_velocity(), update_interval * 1.5))
 		)
 
