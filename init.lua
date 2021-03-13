@@ -129,7 +129,7 @@ minetest.register_globalstep(function(dtime)
 		-- experimentally this also works nicely
 		local pos = vector.add (
 			vector.add({x = 0, y = 1, z = 0}, vector.round(player:get_pos())),
-			vector.round(vector.multiply(player:get_player_velocity(), update_interval * 1.5))
+			vector.round(vector.multiply(player:get_velocity(), update_interval * 1.5))
 		)
 
 		wielded_light.update_light_by_item(player:get_wielded_item(), pos)
