@@ -22,3 +22,11 @@ Override or set custom light level to an item. This does not change the item/nod
 
 `function wielded_light.update_light_by_item(stack, pos)`
 Update light at pos using item shining settings -from registered item_light or from item definition
+
+`function wielded_light.register_lightable_node(light_def)`
+Set nodes other than air or default water to be affected by this mod, allowing wielded lights to create a lit node when the player is inside it.
+
+    light_def = {
+		lightable_nodes = -- a string or a list of strings giving the node names to make lightable (required)
+    	lit_by_floodable =  -- defaults to false, if true then items that are "floodable" (such as torches) will light this node when wielded
+    }

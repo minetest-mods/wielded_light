@@ -19,8 +19,8 @@ local function deep_copy(input)
 end
 
 -- light_def = {
---	lightable_nodes = -- a string or a list of strings giving the node names of liquids to make lightable (required)
---	lit_by_floodable =  -- defaults to false, if true then items that are "floodable" (such as torches) will light this liquid when weilded
+--	lightable_nodes = -- a string or a list of strings giving the node names to make lightable (required)
+--	lit_by_floodable =  -- defaults to false, if true then items that are "floodable" (such as torches) will light this node when wielded
 --}
 
 function wielded_light.register_lightable_node(light_def)
@@ -29,24 +29,19 @@ function wielded_light.register_lightable_node(light_def)
 	end
 
 	for _, lightable_node_name in ipairs(light_def.lightable_nodes) do
-		node_def = minetest.registered_nodes[lightable_node_name]
+		local node_def = minetest.registered_nodes[lightable_node_name]
 		assert(node_def, "[wielded_light] unable to find definition for " .. lightable_node_name ..
-			" while registering lightable liquids")
+			" while registering lightable nodes")
 			
-		lit_node_name = "wielded_light:"..string.gsub(lightable_node_name, ":", "_")
-		
-		liquid = node_def.liquidtype == "source" or node_def.liquidtype == "flowing"
+		local lit_node_name = "wielded_light:"..string.gsub(lightable_node_name, ":", "_")
 		
 		lightable_def = {lit_name = lit_node_name, lit_by_floodable = light_def.lit_by_floodable}
 		assert(not lightable_nodes[lightable_node_name], lightable_node_name .. " has already been registered with wielded_light")
 		lightable_nodes[lightable_node_name] = lightable_def
 		
 		-- build the base helper node def
-		copy_def = deep_copy(node_def)
-		if liquid then
-			--copy_def.liquidtype = nil -- wielded_light lit nodes don't work when they're liquid types, they get modified by the engine every second and it causes flicker.
-			--copy_def.climbable = true
-		end
+		local copy_def = deep_copy(node_def)
+
 		-- After an interval, turn back into the unlit node
 		copy_def.on_timer = function(pos, elapsed)
 			--minetest.chat_send_all("turning back into " .. lightable_node_name .. " " .. tostring(math.random(1,100)))
@@ -157,9 +152,8 @@ local item = {
 setmetatable(item, {__index = builtin_item})
 minetest.register_entity(":__builtin:item", item)
 
-
 if minetest.get_modpath("default") then
-	wielded_light.register_lightable_node({lightable_nodes = {"default:water_source", "default:river_water_source"}})
+	wielded_light.register_lightable_node({lightable_nodes = {"default:water_source", "default:river_water_source"}, lit_by_floodable = false})
 end
 
 ---TEST
