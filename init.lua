@@ -35,7 +35,7 @@ function wielded_light.register_lightable_node(light_def)
 			
 		local lit_node_name = "wielded_light:"..string.gsub(lightable_node_name, ":", "_")
 		
-		lightable_def = {lit_name = lit_node_name, lit_by_floodable = light_def.lit_by_floodable}
+		local lightable_def = {lit_name = lit_node_name, lit_by_floodable = light_def.lit_by_floodable}
 		assert(not lightable_nodes[lightable_node_name], lightable_node_name .. " has already been registered with wielded_light")
 		lightable_nodes[lightable_node_name] = lightable_def
 		
@@ -79,7 +79,7 @@ function wielded_light.update_light(pos, light_level, itemdef)
 	for _, around in ipairs(around_vector) do
 		local light_pos = vector.add(pos, around)
 		local name = minetest.get_node(light_pos).name
-		lightable_node_def = lightable_nodes[name]
+		local lightable_node_def = lightable_nodes[name]
 		if lightable_node_def and (lightable_node_def.lit_by_floodable or not itemdef.floodable) then
 			minetest.swap_node(light_pos, {name = lightable_node_def.lit_name..light_level})
 			local timer = minetest.get_node_timer(light_pos)
