@@ -2,50 +2,90 @@ local update_interval = 0.2
 local level_delta = 2
 local shiny_items = {}
 
+local lightable_nodes = {}
+
 --- Shining API ---
 wielded_light = {}
 
-function wielded_light.update_light(pos, light_level)
+local function deep_copy(input)
+	if type(input) ~= "table" then
+		return input
+	end
+	local output = {}
+	for index, value in pairs(input) do
+		output[index] = deep_copy(value)
+	end
+	return output
+end
+
+-- light_def = {
+--	lightable_nodes = -- a string or a list of strings giving the node names to make lightable (required)
+--	lit_by_floodable =  -- defaults to false, if true then items that are "floodable" (such as torches) will light this node when wielded
+--}
+
+function wielded_light.register_lightable_node(light_def)
+	if (type(light_def.lightable_nodes) == "string") then
+		light_def.lightable_nodes = {light_def.lightable_nodes}
+	end
+
+	for _, lightable_node_name in ipairs(light_def.lightable_nodes) do
+		local node_def = minetest.registered_nodes[lightable_node_name]
+		assert(node_def, "[wielded_light] unable to find definition for " .. lightable_node_name ..
+			" while registering lightable nodes")
+			
+		local lit_node_name = "wielded_light:"..string.gsub(lightable_node_name, ":", "_")
+		
+		local lightable_def = {lit_name = lit_node_name, lit_by_floodable = light_def.lit_by_floodable}
+		assert(not lightable_nodes[lightable_node_name], lightable_node_name .. " has already been registered with wielded_light")
+		lightable_nodes[lightable_node_name] = lightable_def
+		
+		-- build the base helper node def
+		local copy_def = deep_copy(node_def)
+
+		-- After an interval, turn back into the unlit node
+		copy_def.on_timer = function(pos, elapsed)
+			--minetest.chat_send_all("turning back into " .. lightable_node_name .. " " .. tostring(math.random(1,100)))
+			minetest.swap_node(pos, {name = lightable_node_name})
+		end
+		copy_def.groups = copy_def.groups or {}
+		copy_def.groups.not_in_creative_inventory = 1
+		copy_def.drop = copy_def.drop or lightable_node_name -- if drop is undefined, set it to drop the unlit node type
+		
+		for i = 1, 14 do
+			-- register helper nodes for lightable node
+			copy_def.light_source = i
+			copy_def.groups.wielded_light = i
+			minetest.register_node(lit_node_name..i, copy_def)
+			assert(not lightable_nodes[lit_node_name..i], lightable_node_name .. " has already been registered with wielded_light")
+			lightable_nodes[lit_node_name..i] = lightable_def -- ensure the lightable def is available for every node it incorporates
+		end
+	end	
+end
+
+wielded_light.register_lightable_node({lightable_nodes = "air", lit_by_floodable = true})
+
+-- Register aliases for the old helper nodes for air
+for i=1, 14 do
+	minetest.register_alias("wielded_light:"..i, "wielded_light:air"..i)
+end
+
+function wielded_light.update_light(pos, light_level, itemdef)
 	local around_vector = {
 			{x=0, y=0, z=0},
 			{x=0, y=1, z=0}, {x=0, y=-1, z=0},
 			{x=1, y=0, z=0}, {x=-1, y=0, z=0},
 			{x=0, y=0, z=1}, {x=0, y=0, z=1},
 		}
-	local do_update = false
-	local old_value = 0
-	local timer
-	local light_pos
 	for _, around in ipairs(around_vector) do
-		light_pos = vector.add(pos, around)
+		local light_pos = vector.add(pos, around)
 		local name = minetest.get_node(light_pos).name
-		if name == "air" and (minetest.get_node_light(light_pos) or 0) < light_level then
-			do_update = true
-			break
-		elseif name:sub(1,13) == "wielded_light" then -- Update existing light node and timer
-			old_value = tonumber(name:sub(15))
-			if light_level > old_value then
-				do_update = true
-			else
-				timer = minetest.get_node_timer(light_pos)
-				local elapsed = timer:get_elapsed()
-				if elapsed > (update_interval * 1.5) then
-					-- The timer is set to 3x update_interval
-					-- This node was not updated the last interval and may
-					-- is disabled before the next step
-					-- Therefore the light should be re-set to avoid flicker
-					do_update = true
-				end
-			end
+		local lightable_node_def = lightable_nodes[name]
+		if lightable_node_def and (lightable_node_def.lit_by_floodable or not itemdef.floodable) then
+			minetest.swap_node(light_pos, {name = lightable_node_def.lit_name..light_level})
+			local timer = minetest.get_node_timer(light_pos)
+			timer:start(update_interval*3)
 			break
 		end
-	end
-	if do_update then
-		timer = timer or minetest.get_node_timer(light_pos)
-		if light_level ~= old_value then
-			minetest.swap_node(light_pos, {name = "wielded_light:"..light_level})
-		end
-		timer:start(update_interval*3)
 	end
 end
 
@@ -60,31 +100,12 @@ function wielded_light.update_light_by_item(item, pos)
 	light_level = light_level or ((itemdef.light_source or 0) - level_delta)
 
 	if light_level > 0 then
-		wielded_light.update_light(pos, light_level)
+		wielded_light.update_light(pos, light_level, itemdef)
 	end
 end
 
 function wielded_light.register_item_light(itemname, light_level)
 	shiny_items[itemname] = light_level
-end
-
-
--- Register helper nodes
-for i=1, 14 do
-	minetest.register_node("wielded_light:"..i, {
-		drawtype = "airlike",
-		groups = {not_in_creative_inventory = 1},
-		walkable = false,
-		paramtype = "light",
-		sunlight_propagates = true,
-		light_source = i,
-		pointable = false,
-		buildable_to = true,
-		drop = {},
-		on_timer = function(pos, elapsed)
-			minetest.swap_node(pos, {name = "air"})
-		end,
-	})
 end
 
 -- Wielded item shining globalstep
@@ -103,7 +124,7 @@ minetest.register_globalstep(function(dtime)
 		-- experimentally this also works nicely
 		local pos = vector.add (
 			vector.add({x = 0, y = 1, z = 0}, vector.round(player:get_pos())),
-			vector.round(vector.multiply(player:get_player_velocity(), update_interval * 1.5))
+			vector.round(vector.multiply(player:get_velocity(), update_interval * 1.5))
 		)
 
 		wielded_light.update_light_by_item(player:get_wielded_item(), pos)
@@ -131,6 +152,9 @@ local item = {
 setmetatable(item, {__index = builtin_item})
 minetest.register_entity(":__builtin:item", item)
 
+if minetest.get_modpath("default") then
+	wielded_light.register_lightable_node({lightable_nodes = {"default:water_source", "default:river_water_source"}, lit_by_floodable = false})
+end
 
 ---TEST
 --wielded_light.register_item_light('default:dirt', 14)
