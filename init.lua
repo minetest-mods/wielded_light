@@ -5,6 +5,9 @@ local shiny_items = {}
 --- Shining API ---
 wielded_light = {}
 
+wielded_light.lightable_nodes = {}
+wielded_light.lighting_nodes = {}
+
 function wielded_light.update_light(pos, light_level)
 	local around_vector = {
 			{x=0, y=0, z=0},
@@ -18,16 +21,13 @@ function wielded_light.update_light(pos, light_level)
 	for _, around in ipairs(around_vector) do
 		light_pos = vector.add(pos, around)
 		local name = minetest.get_node(light_pos).name
-		if name == "air" and (minetest.get_node_light(light_pos) or 0) < light_level then
-			update_node = "wielded_light:"..light_level
+		if wielded_light.lightable_nodes[name] and (minetest.get_node_light(light_pos) or 0) < light_level then
+			update_node = wielded_light.lightable_nodes[name][light_level]
 			break
-		elseif name == "default:water_source"  and (minetest.get_node_light(light_pos) or 0) < light_level then
-			update_node = "wielded_light:water_"..light_level
-			break
-		elseif name:sub(1,20) == "wielded_light:water_" then
-			local old_value = tonumber(name:sub(21))
+		elseif wielded_light.lighting_nodes[name] then -- Update existing light node and timer
+			local old_value = minetest.registered_nodes[name].light_source
 			if light_level > old_value then
-				update_node = "wielded_light:water_"..light_level
+				update_node = wielded_light.lighting_nodes[name][light_level]
 			else
 				timer = minetest.get_node_timer(light_pos)
 				local elapsed = timer:get_elapsed()
@@ -36,23 +36,7 @@ function wielded_light.update_light(pos, light_level)
 					-- This node was not updated the last interval and may
 					-- is disabled before the next step
 					-- Therefore the light should be re-set to avoid flicker
-					update_node = "wielded_light:water_"..light_level
-				end
-			end
-			break
-		elseif name:sub(1,13) == "wielded_light" then -- Update existing light node and timer
-			local old_value = tonumber(name:sub(15))
-			if light_level > old_value then
-				update_node = "wielded_light:"..light_level
-			else
-				timer = minetest.get_node_timer(light_pos)
-				local elapsed = timer:get_elapsed()
-				if elapsed > (update_interval * 1.5) then
-					-- The timer is set to 3x update_interval
-					-- This node was not updated the last interval and may
-					-- is disabled before the next step
-					-- Therefore the light should be re-set to avoid flicker
-					update_node = "wielded_light:"..light_level
+					update_node = wielded_light.lighting_nodes[name][light_level]
 				end
 			end
 			break
@@ -87,9 +71,16 @@ end
 local water_def =  minetest.registered_nodes["default:water_source"]
 
 -- Register helper nodes
+wielded_light.lightable_nodes["air"] = {}
+if water_def then
+	wielded_light.lightable_nodes["default:water_source"] = {}
+end
 for i=1, 14 do
 	-- 14 air nodes
-	minetest.register_node("wielded_light:"..i, {
+	local node_name = "wielded_light:"..i
+	wielded_light.lightable_nodes["air"][i] = node_name
+	wielded_light.lighting_nodes[node_name] = wielded_light.lightable_nodes["air"]
+	minetest.register_node(node_name, {
 		drawtype = "airlike",
 		groups = {not_in_creative_inventory = 1},
 		walkable = false,
@@ -106,7 +97,10 @@ for i=1, 14 do
 
 	--14 water nodes (only if default mod present)
 	if water_def then
-		minetest.register_node("wielded_light:water_"..i, {
+		local node_name = "wielded_light:water_"..i
+		wielded_light.lightable_nodes["default:water_source"][i] = node_name
+		wielded_light.lighting_nodes[node_name] = wielded_light.lightable_nodes["default:water_source"]
+		minetest.register_node(node_name, {
 			drawtype = "liquid",
 			tiles = water_def.tiles,
 			special_tiles = water_def.special_tiles,
