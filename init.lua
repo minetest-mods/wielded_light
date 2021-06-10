@@ -68,12 +68,17 @@ function wielded_light.register_item_light(itemname, light_level)
 	shiny_items[itemname] = light_level
 end
 
-local water_def =  minetest.registered_nodes["default:water_source"]
+local water_name = "default:water_source"
+local water_def = minetest.registered_nodes["default:water_source"]
+if minetest.get_modpath("hades_core") then
+	water_name = "hades_core:water_source"
+	water_def = minetest.registered_nodes["hades_core:water_source"]
+end
 
 -- Register helper nodes
 wielded_light.lightable_nodes["air"] = {}
 if water_def then
-	wielded_light.lightable_nodes["default:water_source"] = {}
+	wielded_light.lightable_nodes[water_name] = {}
 end
 for i=1, 14 do
 	-- 14 air nodes
@@ -98,8 +103,8 @@ for i=1, 14 do
 	--14 water nodes (only if default mod present)
 	if water_def then
 		local node_name = "wielded_light:water_"..i
-		wielded_light.lightable_nodes["default:water_source"][i] = node_name
-		wielded_light.lighting_nodes[node_name] = wielded_light.lightable_nodes["default:water_source"]
+		wielded_light.lightable_nodes[water_name][i] = node_name
+		wielded_light.lighting_nodes[node_name] = wielded_light.lightable_nodes[water_name]
 		minetest.register_node(node_name, {
 			drawtype = "liquid",
 			tiles = water_def.tiles,
@@ -120,10 +125,10 @@ for i=1, 14 do
 			liquid_range = 0,
 			post_effect_color = water_def.post_effect_color,
 			groups = {not_in_creative_inventory = 1},
-			sounds = default.node_sound_water_defaults(),
+			sounds = water_def.sounds,
 			light_source = i,
 			on_timer = function(pos, elapsed)
-				minetest.swap_node(pos, {name = "default:water_source"})
+				minetest.swap_node(pos, {name = water_name})
 			end,
 		})
 	end
@@ -157,8 +162,8 @@ end)
 -- https://github.com/minetest/minetest/issues/6909
 local builtin_item = minetest.registered_entities["__builtin:item"]
 local item = {
-	on_step = function(self, dtime)
-		builtin_item.on_step(self, dtime)
+	on_step = function(self, dtime, ...)
+		builtin_item.on_step(self, dtime, ...)
 
 		self.shining_timer = (self.shining_timer or 0) + dtime
 		if self.shining_timer >= update_interval then
