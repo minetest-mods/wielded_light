@@ -1,67 +1,106 @@
 local update_interval = 0.2
 local level_delta = 2
 local shiny_items = {}
+local mod_name = "wielded_light"
+local max_light_level = 14
 
 --- Shining API ---
 wielded_light = {}
 
-function wielded_light.update_light(pos, light_level)
-	local around_vector = {
-			{x=0, y=0, z=0},
-			{x=0, y=1, z=0}, {x=0, y=-1, z=0},
-			{x=1, y=0, z=0}, {x=-1, y=0, z=0},
-			{x=0, y=0, z=1}, {x=0, y=0, z=1},
-		}
-	local do_update = false
-	local old_value = 0
-	local timer
-	local light_pos
-	for _, around in ipairs(around_vector) do
-		light_pos = vector.add(pos, around)
-		local name = minetest.get_node(light_pos).name
-		if name == "air" and (minetest.get_node_light(light_pos) or 0) < light_level then
-			do_update = true
-			break
-		elseif name:sub(1,13) == "wielded_light" then -- Update existing light node and timer
-			old_value = tonumber(name:sub(15))
-			if light_level > old_value then
-				do_update = true
-			else
-				timer = minetest.get_node_timer(light_pos)
-				local elapsed = timer:get_elapsed()
-				if elapsed > (update_interval * 1.5) then
-					-- The timer is set to 3x update_interval
-					-- This node was not updated the last interval and may
-					-- is disabled before the next step
-					-- Therefore the light should be re-set to avoid flicker
-					do_update = true
-				end
-			end
-			break
-		end
+function wielded_light.wielded_light_of_level(light_level)
+	return mod_name..":"..light_level
+end
+
+function wielded_light.level_of_wielded_light(node_name)
+	return tonumber(node_name:sub(#mod_name+2))
+end
+
+function wielded_light.is_wielded_light(node_name)
+	return node_name:sub(1, #mod_name) == mod_name
+end
+
+function wielded_light.is_lightable_node(node_pos)
+	local name = minetest.get_node(node_pos).name
+	if name == "air" then
+		return true
+	elseif wielded_light.is_wielded_light(name) then
+		return true
 	end
-	if do_update then
-		timer = timer or minetest.get_node_timer(light_pos)
-		if light_level ~= old_value then
-			minetest.swap_node(light_pos, {name = "wielded_light:"..light_level})
+	return false
+end
+
+function wielded_light.get_light_position(pos)
+	local around_vector = {
+		{x=0, y=0, z=0},
+		{x=0, y=1, z=0}, {x=0, y=-1, z=0},
+		{x=1, y=0, z=0}, {x=-1, y=0, z=0},
+		{x=0, y=0, z=1}, {x=0, y=0, z=1},
+	}
+	for _, around in ipairs(around_vector) do
+		local light_pos = vector.add(pos, around)
+		if wielded_light.is_lightable_node(light_pos) then
+			return light_pos
 		end
-		timer:start(update_interval*3)
 	end
 end
 
-function wielded_light.update_light_by_item(item, pos)
-	local stack = ItemStack(item)
-	local light_level = shiny_items[stack:get_name()]
+function wielded_light.get_light_level(item_string)
+	local stack = ItemStack(item_string)
+	local item_name = stack:get_name()
+
+	local cached_light_level = shiny_items[item_name]
+	if cached_light_level then
+		return cached_light_level
+	end
+
 	local itemdef = stack:get_definition()
-	if not light_level and not itemdef then
+	if not itemdef then
+		return 0
+	end
+
+	local light_level = math.min(math.max((itemdef.light_source or 0) - level_delta, 0), max_light_level)
+	-- shiny_items[item_name] = light_level
+
+	return light_level
+end
+
+
+
+function wielded_light.update_light(pos, light_level)
+	local old_value = 0
+	local timer
+	local light_pos = wielded_light.get_light_position(pos)
+	if not light_pos then
 		return
 	end
 
-	light_level = light_level or ((itemdef.light_source or 0) - level_delta)
-
-	if light_level > 0 then
-		wielded_light.update_light(pos, light_level)
+	local name = minetest.get_node(light_pos).name
+	if wielded_light.is_wielded_light(name) then -- Update existing light node and timer
+		old_value = wielded_light.level_of_wielded_light(name)
+		if light_level <= old_value then
+			timer = minetest.get_node_timer(light_pos)
+			-- The timer is set to 3x update_interval
+			-- This node was not updated the last interval and may
+			-- is disabled before the next step
+			-- Therefore the light should be re-set to avoid flicker
+			if timer:get_elapsed() <= (update_interval * 1.5) then
+				return
+			end
+		end
 	end
+
+	timer = timer or minetest.get_node_timer(light_pos)
+	if light_level ~= old_value then
+		minetest.swap_node(light_pos, { name = wielded_light.wielded_light_of_level(light_level) })
+	end
+	timer:start(update_interval*3)
+end
+
+function wielded_light.update_light_by_item(item, pos)
+	local light_level = wielded_light.get_light_level(item)
+	if light_level <= 0 then return end
+
+	wielded_light.update_light(pos, light_level)
 end
 
 function wielded_light.register_item_light(itemname, light_level)
@@ -70,8 +109,8 @@ end
 
 
 -- Register helper nodes
-for i=1, 14 do
-	minetest.register_node("wielded_light:"..i, {
+for i=1, max_light_level do
+	minetest.register_node(wielded_light.wielded_light_of_level(i), {
 		drawtype = "airlike",
 		groups = {not_in_creative_inventory = 1},
 		walkable = false,
@@ -97,6 +136,10 @@ minetest.register_globalstep(function(dtime)
 	timer = 0
 
 	for _, player in pairs(minetest.get_connected_players()) do
+			
+		local light_level = wielded_light.get_light_level(player:get_wielded_item())
+		if light_level <= 0  then return end -- No light, exit
+
 		-- predict where the player will be the next time we place the light
 		-- assume that on average we're slightly past 1/2 of the next interval, hence 1.5
 		-- (since the scheduling is a bit behind)
@@ -106,7 +149,7 @@ minetest.register_globalstep(function(dtime)
 			vector.round(vector.multiply(player:get_player_velocity(), update_interval * 1.5))
 		)
 
-		wielded_light.update_light_by_item(player:get_wielded_item(), pos)
+		wielded_light.update_light(pos, light_level)
 	end
 end)
 
@@ -119,13 +162,16 @@ local item = {
 		builtin_item.on_step(self, dtime, ...)
 
 		self.shining_timer = (self.shining_timer or 0) + dtime
-		if self.shining_timer >= update_interval then
-			self.shining_timer = 0
-			local pos = self.object:get_pos()
-			if pos then
-				wielded_light.update_light_by_item(self.itemstring, pos)
-			end
-		end
+		if self.shining_timer < update_interval then return end -- Too soon, exit
+		self.shining_timer = 0
+			
+		local light_level = wielded_light.get_light_level(self.itemstring)
+		if light_level <= 0  then return end -- No light, exit
+
+		local pos = self.object:get_pos()
+		if not pos then return end -- Invalid pos, exit
+
+		wielded_light.update_light(vector.round(pos), light_level)
 	end
 }
 setmetatable(item, {__index = builtin_item})
