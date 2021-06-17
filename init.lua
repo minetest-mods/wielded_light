@@ -56,14 +56,14 @@ function wielded_light.update_light_by_item(item, pos)
 	if not light_level and not itemdef then
 		return
 	end
-  if itemdef.floodable then
-    local node = minetest.get_node(pos)
-    if node then
-      if (minetest.registered_nodes[node.name].liquidtype ~= "none") then
-        return
-      end
-    end
-  end
+	if itemdef.floodable then
+		local node = minetest.get_node(pos)
+		if node then
+			if (minetest.registered_nodes[node.name].liquidtype ~= "none") then
+				return
+			end
+		end
+	end
 
 	light_level = light_level or ((itemdef.light_source or 0) - level_delta)
 
