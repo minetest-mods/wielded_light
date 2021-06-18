@@ -58,10 +58,9 @@ function wielded_light.update_light_by_item(item, pos)
 	end
 	if itemdef and itemdef.floodable then
 		local node = minetest.get_node(pos)
-		if node then
-			if minetest.registered_nodes[node.name] and (minetest.registered_nodes[node.name].liquidtype ~= "none") then
-				return
-			end
+		local nodedef = minetest.registered_nodes[node.name]
+		if nodedef and nodedef.liquidtype ~= "none" then
+			return
 		end
 	end
 
@@ -77,11 +76,10 @@ function wielded_light.register_item_light(itemname, light_level)
 end
 
 local water_name = "default:water_source"
-local water_def = minetest.registered_nodes["default:water_source"]
 if minetest.get_modpath("hades_core") then
 	water_name = "hades_core:water_source"
-	water_def = minetest.registered_nodes["hades_core:water_source"]
 end
+local water_def = minetest.registered_nodes[water_name]
 
 -- Register helper nodes
 wielded_light.lightable_nodes["air"] = {}
