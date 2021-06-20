@@ -59,15 +59,17 @@ local function update_entity(entity)
 		end
 	end
 	entity.pos = pos_str
-	if pos and entity.update then
-		for id, item in pairs(entity.items) do
-			if item.level > 0 then
-				minetest.get_node_timer(pos):start(cleanup_interval)
-				add_light(pos_str, id, item.level)
-			else
-				remove_light(pos_str, id)
+	if pos then
+		if entity.update then
+			for id, item in pairs(entity.items) do
+				if item.level > 0 then
+					add_light(pos_str, id, item.level)
+				else
+					remove_light(pos_str, id)
+				end
 			end
 		end
+		minetest.get_node_timer(pos):start(cleanup_interval)
 	end
 	entity.update = false
 end
@@ -237,6 +239,7 @@ function wielded_light.get_light_level(item_name)
 		return cached_light_level
 	end
 
+	local stack = ItemStack(item_name)
 	local itemdef = stack:get_definition()
 	if not itemdef then
 		return 0
