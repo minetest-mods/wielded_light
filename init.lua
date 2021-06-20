@@ -53,12 +53,13 @@ local function update_entity(entity)
 	local pos = entity_pos(entity.obj, entity.offset)
 	local pos_str = pos and minetest.pos_to_string(pos)
 	if entity.pos and pos_str ~= entity.pos then
+		entity.update = true
 		for id,_ in pairs(entity.items) do
 			remove_light(entity.pos, id)
 		end
 	end
 	entity.pos = pos_str
-	if pos then
+	if pos and entity.update then
 		for id, item in pairs(entity.items) do
 			if item.level > 0 then
 				minetest.get_node_timer(pos):start(cleanup_interval)
@@ -68,6 +69,7 @@ local function update_entity(entity)
 			end
 		end
 	end
+	entity.update = false
 end
 
 local function cleanup_timer_callback(pos, elapsed)
@@ -225,13 +227,10 @@ function wielded_light.get_light_position(pos)
 	end
 end
 
-function wielded_light.get_light_level(item_string)
-	if not item_string or item_string == "" then
+function wielded_light.get_light_level(item_name)
+	if not item_name or item_name == "" then
 		return 0
 	end
-
-	local stack = ItemStack(item_string)
-	local item_name = stack:get_name()
 
 	local cached_light_level = shiny_items[item_name]
 	if cached_light_level then
@@ -265,7 +264,7 @@ function wielded_light.track_item_entity(userdata, cat, item)
 		if pos_str then
 			add_light(pos_str, id, light_level)
 		end
-		tracked_entities[uid] = { obj=userdata, items={}, pos=pos_str }
+		tracked_entities[uid] = { obj=userdata, items={}, pos=pos_str, update = true }
 	end
 	tracked_entities[uid].items[id] = { level=light_level }
 end
@@ -275,7 +274,7 @@ function wielded_light.track_user_entity(userdata, cat, item)
 	local uid = tostring(userdata)
 	local id = get_cat_code(cat)..uid
 	if not tracked_entities[uid] then
-		tracked_entities[uid] = { obj=userdata, items={}, offset = player_height_offset }
+		tracked_entities[uid] = { obj=userdata, items={}, offset = player_height_offset, update = true }
 	end
 	local tracked_entity = tracked_entities[uid]
 	local tracked_item = tracked_entity.items[id]
@@ -285,6 +284,7 @@ function wielded_light.track_user_entity(userdata, cat, item)
 	then
 		local light_level = wielded_light.get_light_level(item)
 		tracked_entity.items[id] = { level=light_level, item=item }
+		tracked_entity.update = true
 	end
 end
 
