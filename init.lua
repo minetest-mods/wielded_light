@@ -1,10 +1,9 @@
-local mod_name = "wielded_light"
+local mod_name = minetest.get_current_modname()
 
 local update_interval = 0.2
 local cleanup_interval = update_interval*3
 local velocity_projection = update_interval * 1
 local level_delta = 2
-local max_light_level = 14
 local shiny_items = {}
 
 local active_lights = {}
@@ -13,9 +12,15 @@ local tracked_entities = {}
 local update_callbacks = {}
 local update_player_callbacks = {}
 
+--[[
+	Using 2-digit hex codes for categories
+	Starts at 00, ends at FF
+	This makes it easier extract `uid` from `cat_id..uid` by slicing off 2 characters
+	The category ID must be of a fixed length (2 characters)
+]]
 local cat_id = 0
 local cat_codes = {}
-local function get_cat_code(cat)
+local function get_light_category_id(cat)
 	if not cat_codes[cat] then
 		if cat_id >= 256 then
 			error("Wielded item category limit exceeded, maximum 256 wield categories")
@@ -31,17 +36,17 @@ local function entity_still_exists(entity)
 	return entity and (entity.obj:is_player() or entity.obj:get_entity_name() or false)
 end
 
-local function entity_pos(userdata, offset)
+local function entity_pos(obj, offset)
 	if not offset then offset = { x=0, y=0, z=0 } end
 	return wielded_light.get_light_position(
 		vector.round(
 			vector.add(
 				vector.add(
 					offset,
-					userdata:get_pos()
+					obj:get_pos()
 				),
 				vector.multiply(
-					userdata:get_player_velocity(),
+					obj:get_player_velocity(),
 					velocity_projection
 				)
 			)
@@ -52,14 +57,18 @@ end
 local function update_entity(entity)
 	local pos = entity_pos(entity.obj, entity.offset)
 	local pos_str = pos and minetest.pos_to_string(pos)
+	-- If the position has changed, remove the old light and mark the entity for update
 	if entity.pos and pos_str ~= entity.pos then
 		entity.update = true
 		for id,_ in pairs(entity.items) do
 			remove_light(entity.pos, id)
 		end
 	end
+	-- Update the recorded position
 	entity.pos = pos_str
+	-- If the position is still loaded, pump the timer up so it doesn't get removed
 	if pos then
+		-- If the entity is marked for an update, add the light in the position if it emits light
 		if entity.update then
 			for id, item in pairs(entity.items) do
 				if item.level > 0 then
@@ -71,6 +80,7 @@ local function update_entity(entity)
 		end
 		minetest.get_node_timer(pos):start(cleanup_interval)
 	end
+	-- Emtity is updated, does not need an update
 	entity.update = false
 end
 
@@ -147,7 +157,7 @@ function recalc_light(pos)
 		return
 	end
 
-	max_light = math.min(max_light, max_light_level)
+	max_light = math.min(max_light, minetest.LIGHT_MAX)
 	local old_value = 0
 	local name = minetest.get_node(pos_vec).name
 	if wielded_light.is_wielded_light(name) then
@@ -244,8 +254,8 @@ function wielded_light.get_light_level(item_name)
 	if not itemdef then
 		return 0
 	end
-	return math.min(math.max((itemdef.light_source or 0) - level_delta, 0), max_light_level)
-	-- local light_level = math.min(math.max((itemdef.light_source or 0) - level_delta, 0), max_light_level)
+	return math.min(math.max((itemdef.light_source or 0) - level_delta, 0), minetest.LIGHT_MAX)
+	-- local light_level = math.min(math.max((itemdef.light_source or 0) - level_delta, 0), minetest.LIGHT_MAX)
 	-- -- shiny_items[item_name] = light_level
 
 	-- return light_level
@@ -255,36 +265,34 @@ function wielded_light.register_item_light(itemname, light_level)
 	shiny_items[itemname] = light_level
 end
 
-function wielded_light.track_item_entity(userdata, cat, item)
+function wielded_light.track_item_entity(obj, cat, item)
 	local light_level = wielded_light.get_light_level(item)
 	if light_level <= 0 then return end
 
-	local uid = tostring(userdata)
-	local id = get_cat_code(cat)..uid
+	local uid = tostring(obj)
+	local id = get_light_category_id(cat)..uid
 	if not tracked_entities[uid] then
-		local pos = entity_pos(userdata)
+		local pos = entity_pos(obj)
 		local pos_str = pos and minetest.pos_to_string(pos)
 		if pos_str then
 			add_light(pos_str, id, light_level)
 		end
-		tracked_entities[uid] = { obj=userdata, items={}, pos=pos_str, update = true }
+		tracked_entities[uid] = { obj=obj, items={}, pos=pos_str, update = true }
 	end
 	tracked_entities[uid].items[id] = { level=light_level }
 end
 
 local player_height_offset = { x=0, y=1, z=0 }
-function wielded_light.track_user_entity(userdata, cat, item)
-	local uid = tostring(userdata)
-	local id = get_cat_code(cat)..uid
+function wielded_light.track_user_entity(obj, cat, item)
+	local uid = tostring(obj)
+	local id = get_light_category_id(cat)..uid
 	if not tracked_entities[uid] then
-		tracked_entities[uid] = { obj=userdata, items={}, offset = player_height_offset, update = true }
+		tracked_entities[uid] = { obj=obj, items={}, offset = player_height_offset, update = true }
 	end
 	local tracked_entity = tracked_entities[uid]
 	local tracked_item = tracked_entity.items[id]
 
-	if not tracked_item
-	or tracked_item.item ~= item
-	then
+	if not tracked_item or tracked_item.item ~= item then
 		local light_level = wielded_light.get_light_level(item)
 		tracked_entity.items[id] = { level=light_level, item=item }
 		tracked_entity.update = true
@@ -295,7 +303,7 @@ end
 minetest.register_globalstep(global_timer_callback)
 
 -- Register helper nodes
-for i=1, max_light_level do
+for i=1, minetest.LIGHT_MAX do
 	minetest.register_node(wielded_light.wielded_light_of_level(i), {
 		drawtype = "airlike",
 		groups = {not_in_creative_inventory = 1},
