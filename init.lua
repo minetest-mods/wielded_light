@@ -1,16 +1,46 @@
 local mod_name = minetest.get_current_modname()
 
+-- How often will the positions of lights be recalculated
 local update_interval = 0.2
-local cleanup_interval = update_interval*3
+
+-- How often will a node attempt to check itself for deletion
+local cleanup_interval = update_interval * 3
+
+-- How far in the future will the position be projected based on the velocity
 local velocity_projection = update_interval * 1
+
+-- How many light levels should an item held in the hand be reduced by, compared to the placed node
+-- does not apply to manually registered light levels
 local level_delta = 2
+
+-- item=light_level pairs of registered wielded lights
 local shiny_items = {}
 
-local active_lights = {}
-local light_recalcs = {}
-local tracked_entities = {}
+-- List of custom callbacks for each update step
 local update_callbacks = {}
 local update_player_callbacks = {}
+
+-- position={id=light_level} sets of known about light sources and their levels by position
+local active_lights = {}
+
+--[[ Sets of entities being tracked, in the form:
+entity_id = {
+	obj = entity,
+	items = {
+		category_id..entity_id = {
+			level = light_level,
+			item? = item_name
+		}
+	},
+	update = true | false,
+	pos? = position_vector,
+	offset? = offset_vector,
+}
+]]
+local tracked_entities = {}
+
+-- position=true pairs of positions that need to be recaculated this update step
+local light_recalcs = {}
 
 --[[
 	Using 2-digit hex codes for categories
@@ -35,7 +65,7 @@ local function get_light_category_id(cat)
 end
 
 -- Check if an entity instance still exists in the world
-local function entity_still_exists(entity)
+local function is_entity_valid(entity)
 	return entity and (entity.obj:is_player() or entity.obj:get_entity_name() or false)
 end
 
@@ -103,7 +133,7 @@ local function cleanup_timer_callback(pos, elapsed)
 		for id,_ in pairs(lights) do
 			local uid = string.sub(id,3)
 			local entity = tracked_entities[uid]
-			if not entity_still_exists(entity) then
+			if not is_entity_valid(entity) then
 				remove_light(pos_str, id)
 			end
 		end
@@ -135,9 +165,10 @@ local function global_timer_callback(dtime)
 
 	-- Look at each tracked entity and update its position
 	for uid, entity in pairs(tracked_entities) do
-		if entity_still_exists(entity) then
+		if is_entity_valid(entity) then
 			update_entity(entity)
 		else
+			-- If the entity no longer exists, stop tracking it
 			tracked_entities[uid] = nil
 		end
 	end
@@ -217,6 +248,7 @@ function remove_light(pos, id)
 	light_recalcs[pos] = true
 	-- end)
 end
+
 
 --- Shining API ---
 wielded_light = {}
@@ -364,6 +396,9 @@ function wielded_light.track_user_entity(obj, cat, item)
 		tracked_entity.update = true
 	end
 end
+
+
+-- Setup --
 
 -- Wielded item shining globalstep
 minetest.register_globalstep(global_timer_callback)
