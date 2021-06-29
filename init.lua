@@ -3,6 +3,9 @@ local mod_name = minetest.get_current_modname()
 -- How often will the positions of lights be recalculated
 local update_interval = 0.2
 
+-- How long until a previously lit node should be updated - reduces flicker
+local removal_delay = update_interval * 0.5
+
 -- How often will a node attempt to check itself for deletion
 local cleanup_interval = update_interval * 3
 
@@ -152,8 +155,9 @@ local function global_timer_callback(dtime)
 	timer = 0
 
 	-- Run all custom player callbacks for each player
-	for _, player in pairs(minetest.get_connected_players()) do
-		for _,callback in pairs(update_player_callbacks) do
+	local connected_players = minetest.get_connected_players()
+	for _,callback in pairs(update_player_callbacks) do
+		for _, player in pairs(connected_players) do
 			callback(player)
 		end
 	end
@@ -243,10 +247,10 @@ end
 function remove_light(pos, id)
 	if not active_lights[pos] then return end
 	-- minetest.log("error", "rem "..id.." "..pos)
-	-- minetest.after(update_interval, function ()
 	active_lights[pos][id] = nil
-	light_recalcs[pos] = true
-	-- end)
+	minetest.after(removal_delay, function ()
+		light_recalcs[pos] = true
+	end)
 end
 
 
