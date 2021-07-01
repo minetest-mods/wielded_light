@@ -108,6 +108,18 @@ minetest.register_globalstep(function(dtime)
 		)
 
 		wielded_light.update_light_by_item(player:get_wielded_item(), pos)
+
+		-- 3d_armor support
+		local armor_inv = minetest.get_inventory({
+			type = "detached",
+			name = player:get_player_name() .. "_armor",
+		})
+
+		if armor_inv then
+			for k, stack in pairs(armor_inv:get_list("armor")) do
+				wielded_light.update_light_by_item(stack, pos)
+			end
+		end
 	end
 end)
 
