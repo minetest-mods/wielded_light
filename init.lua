@@ -65,6 +65,7 @@ function wielded_light.update_light_by_item(item, pos)
 end
 
 function wielded_light.register_item_light(itemname, light_level)
+	light_level = light_level or 10
 	shiny_items[itemname] = light_level
 end
 
