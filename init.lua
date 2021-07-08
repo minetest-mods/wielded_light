@@ -5,6 +5,9 @@ local shiny_items = {}
 --- Shining API ---
 wielded_light = {}
 
+wielded_light.lightable_nodes = {}
+wielded_light.lighting_nodes = {}
+
 function wielded_light.update_light(pos, light_level)
 	local around_vector = {
 			{x=0, y=0, z=0},
@@ -12,20 +15,19 @@ function wielded_light.update_light(pos, light_level)
 			{x=1, y=0, z=0}, {x=-1, y=0, z=0},
 			{x=0, y=0, z=1}, {x=0, y=0, z=1},
 		}
-	local do_update = false
-	local old_value = 0
+	local update_node = false
 	local timer
 	local light_pos
 	for _, around in ipairs(around_vector) do
 		light_pos = vector.add(pos, around)
 		local name = minetest.get_node(light_pos).name
-		if name == "air" and (minetest.get_node_light(light_pos) or 0) < light_level then
-			do_update = true
+		if wielded_light.lightable_nodes[name] and (minetest.get_node_light(light_pos) or 0) < light_level then
+			update_node = wielded_light.lightable_nodes[name][light_level]
 			break
-		elseif name:sub(1,13) == "wielded_light" then -- Update existing light node and timer
-			old_value = tonumber(name:sub(15))
+		elseif wielded_light.lighting_nodes[name] then -- Update existing light node and timer
+			local old_value = minetest.registered_nodes[name].light_source
 			if light_level > old_value then
-				do_update = true
+				update_node = wielded_light.lighting_nodes[name][light_level]
 			else
 				timer = minetest.get_node_timer(light_pos)
 				local elapsed = timer:get_elapsed()
@@ -34,17 +36,15 @@ function wielded_light.update_light(pos, light_level)
 					-- This node was not updated the last interval and may
 					-- is disabled before the next step
 					-- Therefore the light should be re-set to avoid flicker
-					do_update = true
+					update_node = wielded_light.lighting_nodes[name][light_level]
 				end
 			end
 			break
 		end
 	end
-	if do_update then
+	if update_node then
 		timer = timer or minetest.get_node_timer(light_pos)
-		if light_level ~= old_value then
-			minetest.swap_node(light_pos, {name = "wielded_light:"..light_level})
-		end
+		minetest.swap_node(light_pos, {name = update_node})
 		timer:start(update_interval*3)
 	end
 end
@@ -55,6 +55,13 @@ function wielded_light.update_light_by_item(item, pos)
 	local itemdef = stack:get_definition()
 	if not light_level and not itemdef then
 		return
+	end
+	if itemdef and itemdef.floodable then
+		local node = minetest.get_node(pos)
+		local nodedef = minetest.registered_nodes[node.name]
+		if nodedef and nodedef.liquidtype ~= "none" then
+			return
+		end
 	end
 
 	light_level = light_level or ((itemdef.light_source or 0) - level_delta)
@@ -68,10 +75,23 @@ function wielded_light.register_item_light(itemname, light_level)
 	shiny_items[itemname] = light_level
 end
 
+local water_name = "default:water_source"
+if minetest.get_modpath("hades_core") then
+	water_name = "hades_core:water_source"
+end
+local water_def = minetest.registered_nodes[water_name]
 
 -- Register helper nodes
+wielded_light.lightable_nodes["air"] = {}
+if water_def then
+	wielded_light.lightable_nodes[water_name] = {}
+end
 for i=1, 14 do
-	minetest.register_node("wielded_light:"..i, {
+	-- 14 air nodes
+	local node_name = "wielded_light:"..i
+	wielded_light.lightable_nodes["air"][i] = node_name
+	wielded_light.lighting_nodes[node_name] = wielded_light.lightable_nodes["air"]
+	minetest.register_node(node_name, {
 		drawtype = "airlike",
 		groups = {not_in_creative_inventory = 1},
 		walkable = false,
@@ -85,6 +105,39 @@ for i=1, 14 do
 			minetest.swap_node(pos, {name = "air"})
 		end,
 	})
+
+	--14 water nodes (only if default mod present)
+	if water_def then
+		local node_name = "wielded_light:water_"..i
+		wielded_light.lightable_nodes[water_name][i] = node_name
+		wielded_light.lighting_nodes[node_name] = wielded_light.lightable_nodes[water_name]
+		minetest.register_node(node_name, {
+			drawtype = "liquid",
+			tiles = water_def.tiles,
+			special_tiles = water_def.special_tiles,
+			alpha = water_def.alpha,
+			paramtype = "light",
+			walkable = false,
+			pointable = false,
+			diggable = false,
+			buildable_to = true,
+			is_ground_content = false,
+			drop = "",
+			drowning = 1,
+			liquidtype = "source",
+			liquid_alternative_flowing = "wielded_light:water_"..i,
+			liquid_alternative_source = "wielded_light:water_"..i,
+			liquid_viscosity = 1,
+			liquid_range = 0,
+			post_effect_color = water_def.post_effect_color,
+			groups = {not_in_creative_inventory = 1},
+			sounds = water_def.sounds,
+			light_source = i,
+			on_timer = function(pos, elapsed)
+				minetest.swap_node(pos, {name = water_name})
+			end,
+		})
+	end
 end
 
 -- Wielded item shining globalstep
