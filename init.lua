@@ -101,7 +101,15 @@ end
 
 -- Get the projected position of an entity based on its velocity, rounded to the nearest block
 local function entity_pos(obj, offset)
-	if not offset then offset = { x=0, y=0, z=0 } end
+	offset = offset or { x=0, y=0, z=0 }
+
+	local player_velocity = 0
+	if obj.get_velocity then
+		player_velocity = obj:get_velocity() or 0
+	else
+		player_velocity = obj:get_player_velocity() or 0
+	end
+
 	return wielded_light.get_light_position(
 		vector.round(
 			vector.add(
@@ -110,7 +118,7 @@ local function entity_pos(obj, offset)
 					obj:get_pos()
 				),
 				vector.multiply(
-					obj:get_player_velocity(),
+					player_velocity,
 					velocity_projection
 				)
 			)
@@ -144,7 +152,7 @@ end
 local function update_entity(entity)
 	local pos = entity_pos(entity.obj, entity.offset)
 	local pos_str = pos and minetest.pos_to_string(pos)
-	
+
 	-- If the position has changed, remove the old light and mark the entity for update
 	if entity.pos and pos_str ~= entity.pos then
 		entity.update = true
@@ -152,10 +160,10 @@ local function update_entity(entity)
 			remove_light(entity.pos, id)
 		end
 	end
-	
+
 	-- Update the recorded position
 	entity.pos = pos_str
-	
+
 	-- If the position is still loaded, pump the timer up so it doesn't get removed
 	if pos then
 		-- If the entity is marked for an update, add the light in the position if it emits light
@@ -371,7 +379,7 @@ function wielded_light.register_lightable_node(node_name, property_overrides, cu
 	lightable_nodes[node_name] = {}
 	for i=1, minetest.LIGHT_MAX do
 		local lighting_node_name = wielded_light.lighting_node_of_level(i, prefix)
-		
+
 		-- Index for quick finding later
 		lightable_nodes[node_name][i] = lighting_node_name
 		lighting_nodes[lighting_node_name] = {
