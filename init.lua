@@ -389,7 +389,7 @@ function wielded_light.register_lightable_node(node_name, property_overrides, cu
 			level_definition.liquid_alternative_flowing = lighting_node_name
 		end
 
-		minetest.register_node(lighting_node_name, level_definition)
+		minetest.register_node(":"..lighting_node_name, level_definition)
 	end
 end
 
@@ -486,6 +486,8 @@ end
 
 -- Keep track of an item entity. Should be called once for an item
 function wielded_light.track_item_entity(obj, cat, item)
+	if not is_entity_valid({ obj=obj }) then return end
+
 	local light_level, light_is_floodable = wielded_light.get_light_def(item)
 	-- If the item does not emit light do not track it
 	if light_level <= 0 then return end
