@@ -103,11 +103,11 @@ end
 local function entity_pos(obj, offset)
 	offset = offset or { x=0, y=0, z=0 }
 
-	local velocity = 0
+	local velocity = { x=0, y=0, z=0 }
 	if (minetest.features.direct_velocity_on_players or not obj:is_player()) and obj.get_velocity then
-		velocity = obj:get_velocity() or 0
+		velocity = obj:get_velocity() or { x=0, y=0, z=0 }
 	else
-		velocity = obj:get_player_velocity() or 0
+		velocity = obj:get_player_velocity() or { x=0, y=0, z=0 }
 	end
 
 	return wielded_light.get_light_position(
