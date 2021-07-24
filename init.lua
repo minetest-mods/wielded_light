@@ -104,7 +104,7 @@ local function entity_pos(obj, offset)
 	offset = offset or { x=0, y=0, z=0 }
 
 	local velocity = 0
-	if obj.get_velocity then
+	if minetest.features.direct_velocity_on_players or not obj:is_player() then
 		velocity = obj:get_velocity() or 0
 	else
 		velocity = obj:get_player_velocity() or 0
