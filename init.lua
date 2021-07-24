@@ -103,11 +103,11 @@ end
 local function entity_pos(obj, offset)
 	offset = offset or { x=0, y=0, z=0 }
 
-	local player_velocity = 0
+	local velocity = 0
 	if obj.get_velocity then
-		player_velocity = obj:get_velocity() or 0
+		velocity = obj:get_velocity() or 0
 	else
-		player_velocity = obj:get_player_velocity() or 0
+		velocity = obj:get_player_velocity() or 0
 	end
 
 	return wielded_light.get_light_position(
@@ -118,7 +118,7 @@ local function entity_pos(obj, offset)
 					obj:get_pos()
 				),
 				vector.multiply(
-					player_velocity,
+					velocity,
 					velocity_projection
 				)
 			)
