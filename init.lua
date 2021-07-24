@@ -103,11 +103,11 @@ end
 local function entity_pos(obj, offset)
 	offset = offset or { x=0, y=0, z=0 }
 
-	local player_velocity = 0
-	if obj.get_velocity then
-		player_velocity = obj:get_velocity() or 0
+	local velocity = 0
+	if (minetest.features.direct_velocity_on_players or not obj:is_player()) and obj.get_velocity then
+		velocity = obj:get_velocity() or 0
 	else
-		player_velocity = obj:get_player_velocity() or 0
+		velocity = obj:get_player_velocity() or 0
 	end
 
 	return wielded_light.get_light_position(
@@ -118,7 +118,7 @@ local function entity_pos(obj, offset)
 					obj:get_pos()
 				),
 				vector.multiply(
-					player_velocity,
+					velocity,
 					velocity_projection
 				)
 			)
@@ -397,7 +397,7 @@ function wielded_light.register_lightable_node(node_name, property_overrides, cu
 			level_definition.liquid_alternative_flowing = lighting_node_name
 		end
 
-		minetest.register_node(lighting_node_name, level_definition)
+		minetest.register_node(":"..lighting_node_name, level_definition)
 	end
 end
 
@@ -494,6 +494,8 @@ end
 
 -- Keep track of an item entity. Should be called once for an item
 function wielded_light.track_item_entity(obj, cat, item)
+	if not is_entity_valid({ obj=obj }) then return end
+
 	local light_level, light_is_floodable = wielded_light.get_light_def(item)
 	-- If the item does not emit light do not track it
 	if light_level <= 0 then return end
