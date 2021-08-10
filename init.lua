@@ -249,11 +249,20 @@ local function recalc_light(pos)
 
 	-- If the light level has changed, set the coresponding light node and initiate the cleanup timer
 	if old_value ~= max_light then
-		local node_name = lightable_nodes[name] and name or lighting_nodes[name].node
-		minetest.swap_node(pos_vec, {
-			name = lightable_nodes[node_name][max_light]
-		})
-		minetest.get_node_timer(pos_vec):start(cleanup_interval)
+		local node_name
+		if lightable_nodes[name] then
+			node_name = name
+		elseif lighting_nodes[name] then
+			node_name = lighting_nodes[name].node
+		end
+		if node_name then
+			minetest.swap_node(pos_vec, {
+				name = lightable_nodes[node_name][max_light]
+			})
+			minetest.get_node_timer(pos_vec):start(cleanup_interval)
+		else
+			active_lights[pos] = nil
+		end
 	end
 end
 
