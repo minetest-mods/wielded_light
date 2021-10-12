@@ -96,7 +96,7 @@ end
 
 -- Check if an entity instance still exists in the world
 local function is_entity_valid(entity)
-	return entity and (entity.obj:is_player() or entity.obj:get_entity_name() or false)
+	return entity and (entity.obj:is_player() or (entity.obj:get_luaentity() and entity.obj:get_luaentity().name) or false)
 end
 
 -- Get the projected position of an entity based on its velocity, rounded to the nearest block
