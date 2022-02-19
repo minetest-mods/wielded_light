@@ -179,6 +179,39 @@ local function update_entity(entity)
 	entity.update = false
 end
 
+
+-- Save the original nodes timer if it has one
+local function save_timer(pos)
+	-- Convert the position back to a vector
+	local pos_vec = minetest.string_to_pos(pos)
+	local timer=minetest.get_node_timer(pos_vec)
+	if timer:is_started() then
+		local meta = minetest.get_meta(pos_vec)
+		meta:set_float("saved_timer_timeout", timer:get_timeout())
+		meta:set_float("saved_timer_elapsed", timer:get_elapsed())
+	end
+end
+
+-- Restore the original nodes timer if it had one
+local function restore_timer(pos_vec)
+	-- Convert the position back to a vector
+--	local pos_vec = minetest.string_to_pos(pos)
+	local meta = minetest.get_meta(pos_vec)
+	local timeout = meta:get_float("saved_timer_timeout")
+	if timeout then
+		local elapsed = meta:get_float("saved_timer_elapsed")
+		local timer=minetest.get_node_timer(pos_vec)
+		timer:set(timeout,elapsed)
+		meta:set_string("saved_timer_timeout",nil)
+		meta:set_string("saved_timer_elapsed",nil)
+	end
+end
+
+
+
+
+
+
 -- Replace a lighting node with its original counterpart
 local function reset_lighting_node(pos)
 	local existing_node = minetest.get_node(pos)
@@ -187,6 +220,7 @@ local function reset_lighting_node(pos)
 		return
 	end
 	minetest.swap_node(pos, { name = lighting_node.node })
+	restore_timer(pos)
 end
 
 -- Will be run once the node timer expires
@@ -208,6 +242,7 @@ local function cleanup_timer_callback(pos, elapsed)
 		minetest.get_node_timer(pos):start(cleanup_interval)
 	end
 end
+
 
 -- Recalculate the total light level for a given position and update the light level there
 local function recalc_light(pos)
@@ -256,6 +291,7 @@ local function recalc_light(pos)
 			node_name = lighting_nodes[name].node
 		end
 		if node_name then
+			save_timer(pos)
 			minetest.swap_node(pos_vec, {
 				name = lightable_nodes[node_name][max_light]
 			})
