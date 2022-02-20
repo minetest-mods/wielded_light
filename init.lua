@@ -219,7 +219,7 @@ local function reset_lighting_node(pos)
 	if not lighting_node then
 		return
 	end
-	minetest.swap_node(pos, { name = lighting_node.node })
+	minetest.swap_node(pos, { name = lighting_node.node,param2 = existing_node.param2 })
 	restore_timer(pos)
 end
 
@@ -279,7 +279,8 @@ local function recalc_light(pos)
 	max_light = math.min(max_light, minetest.LIGHT_MAX)
 
 	-- Get the current light level in this position
-	local name = minetest.get_node(pos_vec).name
+	local existing_node = minetest.get_node(pos_vec)
+	local name = existing_node.name
 	local old_value = wielded_light.level_of_lighting_node(name) or 0
 
 	-- If the light level has changed, set the coresponding light node and initiate the cleanup timer
@@ -293,7 +294,8 @@ local function recalc_light(pos)
 		if node_name then
 			save_timer(pos)
 			minetest.swap_node(pos_vec, {
-				name = lightable_nodes[node_name][max_light]
+				name = lightable_nodes[node_name][max_light],
+				param2 = existing_node.param2
 			})
 			minetest.get_node_timer(pos_vec):start(cleanup_interval)
 		else
