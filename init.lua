@@ -174,6 +174,8 @@ local function update_entity(entity)
 				end
 			end
 		end
+	end
+	if active_lights[pos_str] then
 		minetest.get_node_timer(pos):start(cleanup_interval)
 	end
 	entity.update = false
