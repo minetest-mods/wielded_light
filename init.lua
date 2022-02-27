@@ -465,7 +465,7 @@ function wielded_light.get_light_position(pos)
 		{x=0, y=0, z=0},
 		{x=0, y=1, z=0}, {x=0, y=-1, z=0},
 		{x=1, y=0, z=0}, {x=-1, y=0, z=0},
-		{x=0, y=0, z=1}, {x=0, y=0, z=1},
+		{x=0, y=0, z=1}, {x=0, y=0, z=-1},
 	}
 	for _, around in ipairs(around_vector) do
 		local light_pos = vector.add(pos, around)
