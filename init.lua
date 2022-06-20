@@ -210,7 +210,7 @@ local function restore_timer(pos_vec)
 --	local pos_vec = minetest.string_to_pos(pos)
 	local meta = minetest.get_meta(pos_vec)
 	local timeout = meta:get_float("saved_timer_timeout")
-	if timeout then
+	if timeout > 0 then
 		local elapsed = meta:get_float("saved_timer_elapsed")
 		local timer = minetest.get_node_timer(pos_vec)
 		timer:set(timeout, elapsed)
