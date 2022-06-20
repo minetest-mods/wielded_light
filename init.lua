@@ -99,6 +99,14 @@ local function is_entity_valid(entity)
 	return entity and (entity.obj:is_player() or (entity.obj:get_luaentity() and entity.obj:get_luaentity().name) or false)
 end
 
+-- Check whether a node was registered by the wield_light mod
+local function  is_wieldlight_node(pos_vec)
+	local name = string.sub(minetest.get_node(pos_vec).name, 0, #mod_name)
+	if name == mod_name then
+		return true
+	end
+end
+
 -- Get the projected position of an entity based on its velocity, rounded to the nearest block
 local function entity_pos(obj, offset)
 	local velocity
@@ -176,7 +184,9 @@ local function update_entity(entity)
 		end
 	end
 	if active_lights[pos_str] then
-		minetest.get_node_timer(pos):start(cleanup_interval)
+		if is_wieldlight_node(pos) then
+			minetest.get_node_timer(pos):start(cleanup_interval)
+		end
 	end
 	entity.update = false
 end
@@ -289,7 +299,10 @@ local function recalc_light(pos)
 			node_name = lighting_nodes[name].node
 		end
 		if node_name then
-			save_timer(pos)
+			if not is_wieldlight_node(pos_vec) then
+				save_timer(pos)
+			end
+
 			minetest.swap_node(pos_vec, {
 				name = lightable_nodes[node_name][max_light],
 				param2 = existing_node.param2
