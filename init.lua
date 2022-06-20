@@ -186,7 +186,7 @@ end
 local function save_timer(pos)
 	-- Convert the position back to a vector
 	local pos_vec = minetest.string_to_pos(pos)
-	local timer=minetest.get_node_timer(pos_vec)
+	local timer = minetest.get_node_timer(pos_vec)
 	if timer:is_started() then
 		local meta = minetest.get_meta(pos_vec)
 		meta:set_float("saved_timer_timeout", timer:get_timeout())
@@ -202,17 +202,12 @@ local function restore_timer(pos_vec)
 	local timeout = meta:get_float("saved_timer_timeout")
 	if timeout then
 		local elapsed = meta:get_float("saved_timer_elapsed")
-		local timer=minetest.get_node_timer(pos_vec)
-		timer:set(timeout,elapsed)
-		meta:set_string("saved_timer_timeout",nil)
-		meta:set_string("saved_timer_elapsed",nil)
+		local timer = minetest.get_node_timer(pos_vec)
+		timer:set(timeout, elapsed)
+		meta:set_string("saved_timer_timeout","")
+		meta:set_string("saved_timer_elapsed","")
 	end
 end
-
-
-
-
-
 
 -- Replace a lighting node with its original counterpart
 local function reset_lighting_node(pos)
