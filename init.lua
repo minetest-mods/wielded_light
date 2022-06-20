@@ -100,11 +100,9 @@ local function is_entity_valid(entity)
 end
 
 -- Check whether a node was registered by the wield_light mod
-local function  is_wieldlight_node(pos_vec)
-	local name = string.sub(minetest.get_node(pos_vec).name, 0, #mod_name)
-	if name == mod_name then
-		return true
-	end
+local function is_wieldlight_node(pos_vec)
+	local name = string.sub(minetest.get_node(pos_vec).name, 1, #mod_name)
+	return name == mod_name
 end
 
 -- Get the projected position of an entity based on its velocity, rounded to the nearest block
@@ -193,9 +191,7 @@ end
 
 
 -- Save the original nodes timer if it has one
-local function save_timer(pos)
-	-- Convert the position back to a vector
-	local pos_vec = minetest.string_to_pos(pos)
+local function save_timer(pos_vec)
 	local timer = minetest.get_node_timer(pos_vec)
 	if timer:is_started() then
 		local meta = minetest.get_meta(pos_vec)
@@ -206,8 +202,6 @@ end
 
 -- Restore the original nodes timer if it had one
 local function restore_timer(pos_vec)
-	-- Convert the position back to a vector
---	local pos_vec = minetest.string_to_pos(pos)
 	local meta = minetest.get_meta(pos_vec)
 	local timeout = meta:get_float("saved_timer_timeout")
 	if timeout > 0 then
@@ -300,7 +294,7 @@ local function recalc_light(pos)
 		end
 		if node_name then
 			if not is_wieldlight_node(pos_vec) then
-				save_timer(pos)
+				save_timer(pos_vec)
 			end
 
 			minetest.swap_node(pos_vec, {
@@ -418,7 +412,7 @@ function wielded_light.register_lightable_node(node_name, property_overrides, cu
 	new_definition.mod_origin = mod_name
 	new_definition.groups = new_definition.groups or {}
 	new_definition.groups.not_in_creative_inventory = 1
-        -- Make sure original node is dropped if a lit node is dug
+	-- Make sure original node is dropped if a lit node is dug
 	if not new_definition.drop then
 		new_definition.drop = node_name
 	end
