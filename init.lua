@@ -410,6 +410,10 @@ function wielded_light.register_lightable_node(node_name, property_overrides, cu
 	new_definition.mod_origin = mod_name
 	new_definition.groups = new_definition.groups or {}
 	new_definition.groups.not_in_creative_inventory = 1
+        -- Make sure original node is dropped if a lit node is dug
+	if not new_definition.drop then
+		new_definition.drop = node_name
+	end
 
 	-- Allow any properties to be overridden on registration
 	for prop, val in pairs(property_overrides) do
