@@ -379,6 +379,14 @@ function wielded_light.get_lighting_node(node_name)
 	return lighting_nodes[node_name]
 end
 
+-- If this node is lit, return the unlit version
+function wielded_light.get_unlit_node(node)
+   if lighting_nodes[node.name] then
+      node.name = lighting_nodes[node.name].node
+   end
+   return node
+end
+
 -- Register any node as lightable, register all light level variations for it
 function wielded_light.register_lightable_node(node_name, property_overrides, custom_prefix)
 	-- Node name must be string
