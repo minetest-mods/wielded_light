@@ -642,3 +642,7 @@ wielded_light.register_lightable_node("default:river_water_source", nil, "river_
 
 ---TEST
 --wielded_light.register_item_light('default:dirt', 14)
+
+-- print to log after mod was loaded successfully
+print ("[MOD] Wielded Light loaded")
+
