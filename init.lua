@@ -631,14 +631,16 @@ wielded_light.register_player_lightstep(function (player)
 end)
 
 -- Register helper nodes
-local water_name = "default:water_source"
-if minetest.get_modpath("hades_core") then
-	water_name = "hades_core:water_source"
-end
-
 wielded_light.register_lightable_node("air", nil, "")
-wielded_light.register_lightable_node(water_name, nil, "water_")
-wielded_light.register_lightable_node("default:river_water_source", nil, "river_water_")
+
+if minetest.get_modpath("default") then
+	wielded_light.register_lightable_node("default:water_source", nil, "water_")
+	wielded_light.register_lightable_node("default:river_water_source", nil, "river_water_")
+elseif minetest.get_modpath("hades_core") then
+	wielded_light.register_lightable_node("hades_core:water_source", nil, "water_")
+else
+	error_log("Not running in a supported game, lightable water disabled")
+end
 
 ---TEST
 --wielded_light.register_item_light('default:dirt', 14)
