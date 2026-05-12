@@ -176,6 +176,20 @@ local function update_entity(entity)
 	if pos then
 		-- If the entity is marked for an update, add the light in the position if it emits light
 		if entity.update then
+			-- Offhand
+			if core.get_modpath("mcl_offhand") then
+				local ohis = mcl_offhand.get_offhand(entity.obj)
+				if ohis:get_name() ~= "" then
+					local level = ohis:get_definition().light_source
+					local id = "offhand"
+					if level > 0 then
+						add_light(pos_str, id, level)
+					else
+						remove_light(pos_str, id)
+					end
+				end
+			end
+			-- Items
 			for id, item in pairs(entity.items) do
 				if item.level > 0 and not (item.floodable and is_lightable_liquid(pos)) then
 					add_light(pos_str, id, item.level)
