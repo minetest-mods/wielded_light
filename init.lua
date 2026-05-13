@@ -177,16 +177,14 @@ local function update_entity(entity)
 		-- If the entity is marked for an update, add the light in the position if it emits light
 		if entity.update then
 			-- Offhand
-			if core.get_modpath("mcl_offhand") then
-				local ohis = mcl_offhand.get_offhand(entity.obj)
-				if ohis:get_name() ~= "" then
-					local level = ohis:get_definition().light_source
-					local id = "offhand"
-					if level > 0 then
-						add_light(pos_str, id, level)
-					else
-						remove_light(pos_str, id)
-					end
+			local ohis = entity.obj:get_inventory():get_stack("offhand", 1) -- Get offhand item stack (nil if empty or unavailable)
+			if ohis:get_name() ~= "" then
+				local level = ohis:get_definition().light_source
+				local id = "offhand"
+				if level > 0 then
+					add_light(pos_str, id, level)
+				else
+					remove_light(pos_str, id)
 				end
 			end
 			-- Items
