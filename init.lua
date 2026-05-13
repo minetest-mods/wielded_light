@@ -176,18 +176,6 @@ local function update_entity(entity)
 	if pos then
 		-- If the entity is marked for an update, add the light in the position if it emits light
 		if entity.update then
-			-- Offhand
-			local ohis = entity.obj:get_inventory():get_stack("offhand", 1) -- Get offhand item stack (nil if empty or unavailable)
-			if ohis:get_name() ~= "" then
-				local level = ohis:get_definition().light_source
-				local id = "offhand"
-				if level > 0 then
-					add_light(pos_str, id, level)
-				else
-					remove_light(pos_str, id)
-				end
-			end
-			-- Items
 			for id, item in pairs(entity.items) do
 				if item.level > 0 and not (item.floodable and is_lightable_liquid(pos)) then
 					add_light(pos_str, id, item.level)
@@ -671,6 +659,7 @@ minetest.register_entity(":__builtin:item", item)
 -- Track a player's wielded item
 wielded_light.register_player_lightstep(function (player)
 	wielded_light.track_user_entity(player, "wield", player:get_wielded_item():get_name())
+	wielded_light.track_user_entity(player, "offhand", player:get_inventory():get_stack("offhand", 1):get_name())
 end)
 
 -- Register helper nodes
