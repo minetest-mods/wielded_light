@@ -1,0 +1,26 @@
+version = 1
+
+# Source Code
+[[annotations]]
+path = [
+	"init.lua",
+	"screenshot.png"
+]
+SPDX-FileCopyrightText = [
+    "2018 bell07"
+]
+SPDX-License-Identifier = "GPL-3.0-only"
+
+# Metadata/config files
+[[annotations]]
+path = [
+    ".luacheckrc",
+    "flint.toml",
+    ".github/**",
+    ".gitattributes",
+    ".cdb.json",
+    "README.md",
+    "mod.conf",
+]
+SPDX-FileCopyrightText = "NONE"
+SPDX-License-Identifier = "CC0-1.0"

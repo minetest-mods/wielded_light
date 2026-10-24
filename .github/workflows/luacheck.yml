@@ -1,0 +1,16 @@
+name: luacheck
+on:
+  push:
+    paths:
+      - "**.lua"
+  pull_request:
+    paths:
+      - "**.lua"
+jobs:
+  luacheck:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@main
+      - name: Luacheck
+        uses: lunarmodules/luacheck@master

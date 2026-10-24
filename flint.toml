@@ -1,0 +1,2 @@
+[linter]
+lints.unused_variable = "allow"
