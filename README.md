@@ -1,6 +1,6 @@
-# wielded_light mod for Luanti/Minetest
+# Wielded Light
 
-Idea taken from torches_wieldlight in https://github.com/minetest-mods/torches, but written from scratch and usable for all shining items.
+Idea taken from [`torches_wieldlight`](https://github.com/minetest-mods/torches), but written from scratch and usable for all shining items.
 
 ![Screenshot](https://github.com/bell07/minetest-wielded_light/raw/master/screenshot.png)
 
@@ -8,8 +8,7 @@ All bright nodes with light value > 2 lighten the player environment if wielded,
 
 Dependencies: none
 
-License: [GPL-3](https://github.com/bell07/minetest-wielded_light/blob/master/LICENSE)
-
+License: [GPL-3.0-only](/LICENSES/GPL-3.0-only.txt) see [REUSE.toml](/REUSE.toml) for further details.
 
 ## API Reference
 
