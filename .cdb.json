@@ -1,0 +1,13 @@
+{
+  "$schema": "https://content.luanti.org/api/cdb_schema/",
+  "title": "Wielded Light",
+  "tags": ["survival", "environment"],
+  "type": "MOD",
+  "dev_state": "MAINTENANCE_ONLY",
+  "ai_disclosure": "NONE",
+  "license": "GPL-3.0-only",
+  "repo": "https://github.com/minetest-mods/wielded_light",
+  "issue_tracker": "https://github.com/minetest-mods/wielded_light/issues/new/choose/",
+  "forums": 19378,
+  "short_description": "Wielded and dropped items light up"
+}
